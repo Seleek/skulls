@@ -6,10 +6,14 @@ public class Main {
     static class Carta {
         String mitadSuperior;
         String mitadInferior;
+        boolean volteadaSuperior;
+        boolean volteadaInferior;
         
         public Carta() {
             this.mitadSuperior = "."; // Vacía inicialmente
             this.mitadInferior = "."; // Vacía inicialmente
+            this.volteadaSuperior = false; // No volteada por defecto
+            this.volteadaInferior = false; // No volteada por defecto
         }
         
         public void agregarCalavera(String tipo, boolean esMitadSuperior) {
@@ -20,11 +24,39 @@ public class Main {
             }
         }
         
+        public void voltearMitad(boolean esMitadSuperior) {
+            if (esMitadSuperior) {
+                this.volteadaSuperior = !this.volteadaSuperior;
+            } else {
+                this.volteadaInferior = !this.volteadaInferior;
+            }
+        }
+        
+        public boolean estaVolteada(boolean esMitadSuperior) {
+            if (esMitadSuperior) {
+                return this.volteadaSuperior;
+            } else {
+                return this.volteadaInferior;
+            }
+        }
+        
         public boolean estaVacia(boolean esMitadSuperior) {
             if (esMitadSuperior) {
                 return this.mitadSuperior.equals(".");
             } else {
                 return this.mitadInferior.equals(".");
+            }
+        }
+        
+        public String obtenerContenidoVisible(boolean esMitadSuperior) {
+            if (estaVolteada(esMitadSuperior)) {
+                return "-"; // Mostrar "-" si está volteada
+            }
+            
+            if (esMitadSuperior) {
+                return this.mitadSuperior;
+            } else {
+                return this.mitadInferior;
             }
         }
     }
@@ -63,14 +95,14 @@ public class Main {
             // Subnivel 1: Nivel 1 - Mitad Superior (2 cartas)
             System.out.print("SUBNIVEL 1:   ");
             for (int carta = 0; carta < 2; carta++) {
-                System.out.printf("[" + niveles[0][carta].mitadSuperior + "] ");
+                System.out.printf("[" + niveles[0][carta].obtenerContenidoVisible(true) + "] ");
             }
             System.out.println();
             
             // Subnivel 2: Nivel 1 - Mitad Inferior (2 cartas)  
             System.out.print("SUBNIVEL 2:   ");
             for (int carta = 0; carta < 2; carta++) {
-                System.out.printf("[" + niveles[0][carta].mitadInferior + "] ");
+                System.out.printf("[" + niveles[0][carta].obtenerContenidoVisible(false) + "] ");
             }
             System.out.println();
             System.out.println();
@@ -78,14 +110,14 @@ public class Main {
             // Subnivel 3: Nivel 2 - Mitad Superior (3 cartas)
             System.out.print("SUBNIVEL 3:  ");
             for (int carta = 0; carta < 3; carta++) {
-                System.out.printf("[" + niveles[1][carta].mitadSuperior + "] ");
+                System.out.printf("[" + niveles[1][carta].obtenerContenidoVisible(true) + "] ");
             }
             System.out.println();
             
             // Subnivel 4: Nivel 2 - Mitad Inferior (3 cartas)
             System.out.print("SUBNIVEL 4:  ");
             for (int carta = 0; carta < 3; carta++) {
-                System.out.printf("[" + niveles[1][carta].mitadInferior + "] ");
+                System.out.printf("[" + niveles[1][carta].obtenerContenidoVisible(false) + "] ");
             }
             System.out.println();
             System.out.println();
@@ -93,14 +125,14 @@ public class Main {
             // Subnivel 5: Nivel 3 - Mitad Superior (4 cartas)
             System.out.print("SUBNIVEL 5: ");
             for (int carta = 0; carta < 4; carta++) {
-                System.out.printf("[" + niveles[2][carta].mitadSuperior + "] ");
+                System.out.printf("[" + niveles[2][carta].obtenerContenidoVisible(true) + "] ");
             }
             System.out.println();
             
             // Subnivel 6: Nivel 3 - Mitad Inferior (4 cartas)
             System.out.print("SUBNIVEL 6: ");
             for (int carta = 0; carta < 4; carta++) {
-                System.out.printf("[" + niveles[2][carta].mitadInferior + "] ");
+                System.out.printf("[" + niveles[2][carta].obtenerContenidoVisible(false) + "] ");
             }
             System.out.println();
             System.out.println();
@@ -170,11 +202,22 @@ public class Main {
                 return;
             }
             
+            // Verificar si la mitad de la carta está volteada
+            if (cartaSeleccionada.estaVolteada(esMitadSuperior)) {
+                String mitadStr = esMitadSuperior ? "superior" : "inferior";
+                System.out.println("No se puede agregar una calavera en la mitad " + mitadStr + 
+                                 " de la carta " + carta + " porque está volteada.");
+                return;
+            }
+            
             // Agregar la calavera
             cartaSeleccionada.agregarCalavera(tiposCalaveras[tipoCalavera - 1], esMitadSuperior);
             
             System.out.println("Calavera '" + tiposCalaveras[tipoCalavera - 1] + "' agregada al subnivel " + 
                              subnivel + ", carta " + carta + ".");
+            
+            // Verificar automáticamente si algún rey necesita voltearse
+            verificarYVoltearReyes();
         }
         
         public void limpiarPiramide() {
@@ -196,6 +239,10 @@ public int calcularPuntos() {
     // Calcular puntos de criminales
     int puntosCriminales = calcularPuntosCriminales();
     puntosTotal += puntosCriminales;
+    
+    // Calcular puntos de enamorados
+    int puntosEnamorados = calcularPuntosEnamorados();
+    puntosTotal += puntosEnamorados;
     
     return puntosTotal;
 }
@@ -331,6 +378,423 @@ public int calcularPuntosReyes() {
             return puntosCriminalesTotal;
         }
         
+        public int calcularPuntosEnamorados() {
+            // Primero recopilar todas las posiciones de enamorados
+            java.util.List<PosicionEnamorado> enamorados = new java.util.ArrayList<>();
+            
+            for (int subnivel = 1; subnivel <= 6; subnivel++) {
+                int nivel, maxCartas;
+                boolean esMitadSuperior;
+                
+                if (subnivel == 1) {
+                    nivel = 0; esMitadSuperior = true; maxCartas = 2;
+                } else if (subnivel == 2) {
+                    nivel = 0; esMitadSuperior = false; maxCartas = 2;
+                } else if (subnivel == 3) {
+                    nivel = 1; esMitadSuperior = true; maxCartas = 3;
+                } else if (subnivel == 4) {
+                    nivel = 1; esMitadSuperior = false; maxCartas = 3;
+                } else if (subnivel == 5) {
+                    nivel = 2; esMitadSuperior = true; maxCartas = 4;
+                } else {
+                    nivel = 2; esMitadSuperior = false; maxCartas = 4;
+                }
+                
+                for (int carta = 0; carta < maxCartas; carta++) {
+                    String calavera = esMitadSuperior ? 
+                        niveles[nivel][carta].mitadSuperior : 
+                        niveles[nivel][carta].mitadInferior;
+                    
+                    if (calavera.equals("Enamorado")) {
+                        enamorados.add(new PosicionEnamorado(subnivel, carta, nivel, esMitadSuperior));
+                    }
+                }
+            }
+            
+            // Encontrar emparejamiento óptimo
+            return encontrarEmparejamientoOptimo(enamorados);
+        }
+        
+        private int encontrarEmparejamientoOptimo(java.util.List<PosicionEnamorado> enamorados) {
+            int numEnamorados = enamorados.size();
+            boolean[] usado = new boolean[numEnamorados];
+            int pares = 0;
+            
+            // Construir matriz de adyacencia
+            boolean[][] adyacente = new boolean[numEnamorados][numEnamorados];
+            for (int i = 0; i < numEnamorados; i++) {
+                for (int j = i + 1; j < numEnamorados; j++) {
+                    if (sonAdyacentes(enamorados.get(i), enamorados.get(j))) {
+                        adyacente[i][j] = true;
+                        adyacente[j][i] = true;
+                    }
+                }
+            }
+            
+            // Algoritmo greedy mejorado: priorizar enamorados con menos conexiones
+            while (true) {
+                int mejorI = -1, mejorJ = -1;
+                int menorConexiones = Integer.MAX_VALUE;
+                
+                // Buscar el enamorado no usado con menor número de conexiones disponibles
+                for (int i = 0; i < numEnamorados; i++) {
+                    if (usado[i]) continue;
+                    
+                    int conexiones = 0;
+                    for (int j = 0; j < numEnamorados; j++) {
+                        if (!usado[j] && adyacente[i][j]) {
+                            conexiones++;
+                        }
+                    }
+                    
+                    if (conexiones > 0 && conexiones < menorConexiones) {
+                        menorConexiones = conexiones;
+                        mejorI = i;
+                    }
+                }
+                
+                if (mejorI == -1) break; // No hay más pares posibles
+                
+                // Buscar la mejor pareja para el enamorado seleccionado
+                for (int j = 0; j < numEnamorados; j++) {
+                    if (!usado[j] && adyacente[mejorI][j]) {
+                        mejorJ = j;
+                        break; // Tomar la primera pareja disponible
+                    }
+                }
+                
+                if (mejorJ != -1) {
+                    usado[mejorI] = true;
+                    usado[mejorJ] = true;
+                    pares++;
+                    
+                    PosicionEnamorado pos1 = enamorados.get(mejorI);
+                    PosicionEnamorado pos2 = enamorados.get(mejorJ);
+                    System.out.println("Par de enamorados: Subnivel " + pos1.subnivel + " carta " + (pos1.carta + 1) + 
+                                     " con Subnivel " + pos2.subnivel + " carta " + (pos2.carta + 1) + " - 1 punto");
+                }
+            }
+            
+            return pares;
+        }
+        
+        private boolean sonAdyacentes(PosicionEnamorado pos1, PosicionEnamorado pos2) {
+            // Misma carta, diferente mitad
+            if (pos1.subnivel == pos2.subnivel && pos1.carta == pos2.carta) {
+                return pos1.esMitadSuperior != pos2.esMitadSuperior;
+            }
+            
+            // Mismo subnivel, cartas adyacentes
+            if (pos1.subnivel == pos2.subnivel) {
+                return Math.abs(pos1.carta - pos2.carta) == 1;
+            }
+            
+            // Adyacencias verticales entre diferentes subniveles
+            // Ordenar posiciones para simplificar lógica
+            PosicionEnamorado menor = pos1.subnivel < pos2.subnivel ? pos1 : pos2;
+            PosicionEnamorado mayor = pos1.subnivel < pos2.subnivel ? pos2 : pos1;
+            
+            // Verificar adyacencias según el patrón de la pirámide
+            if (menor.subnivel == 1 && mayor.subnivel == 2) {
+                // Subnivel 1 (mitad superior) a subnivel 2 (mitad inferior) - mismo nivel físico
+                return menor.carta == mayor.carta;
+            }
+            if (menor.subnivel == 2 && mayor.subnivel == 3) {
+                // Subnivel 2 (mitad inferior nivel 0) a subnivel 3 (mitad superior nivel 1)
+                return mayor.carta == menor.carta || mayor.carta == menor.carta + 1;
+            }
+            if (menor.subnivel == 3 && mayor.subnivel == 4) {
+                // Subnivel 3 (mitad superior) a subnivel 4 (mitad inferior) - mismo nivel físico
+                return menor.carta == mayor.carta;
+            }
+            if (menor.subnivel == 4 && mayor.subnivel == 5) {
+                // Subnivel 4 (mitad inferior nivel 1) a subnivel 5 (mitad superior nivel 2)
+                return mayor.carta == menor.carta || mayor.carta == menor.carta + 1;
+            }
+            if (menor.subnivel == 5 && mayor.subnivel == 6) {
+                // Subnivel 5 (mitad superior) a subnivel 6 (mitad inferior) - mismo nivel físico
+                return menor.carta == mayor.carta;
+            }
+            
+            return false;
+        }
+        
+        private int contarCriminalesAdyacentes(int subnivelRey, int cartaRey, boolean esMitadSuperior) {
+            int criminalesCount = 0;
+            int nivelRey = subnivelANivel(subnivelRey);
+            
+            // Verificar criminal en la misma carta (mitad opuesta)
+            String calavеraEnMismaCarta = esMitadSuperior ? 
+                niveles[nivelRey][cartaRey].mitadInferior : 
+                niveles[nivelRey][cartaRey].mitadSuperior;
+            
+            if (calavеraEnMismaCarta.equals("Criminal")) {
+                criminalesCount++;
+            }
+            
+            // Verificar criminales adyacentes horizontales (mismo subnivel)
+            int maxCartas = getMaxCartasParaSubnivel(subnivelRey);
+            
+            // Carta a la izquierda
+            if (cartaRey > 0) {
+                String calavеraIzquierda = esMitadSuperior ? 
+                    niveles[nivelRey][cartaRey - 1].mitadSuperior : 
+                    niveles[nivelRey][cartaRey - 1].mitadInferior;
+                
+                if (calavеraIzquierda.equals("Criminal")) {
+                    criminalesCount++;
+                }
+            }
+            
+            // Carta a la derecha
+            if (cartaRey < maxCartas - 1) {
+                String calavеraDerecha = esMitadSuperior ? 
+                    niveles[nivelRey][cartaRey + 1].mitadSuperior : 
+                    niveles[nivelRey][cartaRey + 1].mitadInferior;
+                
+                if (calavеraDerecha.equals("Criminal")) {
+                    criminalesCount++;
+                }
+            }
+            
+            // Verificar criminales adyacentes verticales (diferentes subniveles)
+            criminalesCount += verificarCriminalesAdyacentesVerticales(subnivelRey, cartaRey);
+            
+            return criminalesCount;
+        }
+        
+        private int subnivelANivel(int subnivel) {
+            switch (subnivel) {
+                case 1:
+                case 2:
+                    return 0; // Nivel 1
+                case 3:
+                case 4:
+                    return 1; // Nivel 2
+                case 5:
+                case 6:
+                    return 2; // Nivel 3
+                default:
+                    return 0;
+            }
+        }
+        
+        private int getMaxCartasParaSubnivel(int subnivel) {
+            switch (subnivel) {
+                case 1:
+                case 2:
+                    return 2; // Nivel 1 tiene 2 cartas
+                case 3:
+                case 4:
+                    return 3; // Nivel 2 tiene 3 cartas
+                case 5:
+                case 6:
+                    return 4; // Nivel 3 tiene 4 cartas
+                default:
+                    return 2;
+            }
+        }
+        
+        private int verificarCriminalesAdyacentesVerticales(int subnivelRey, int cartaRey) {
+            int criminalesCount = 0;
+            
+            // Verificar según el subnivel del rey
+            switch (subnivelRey) {
+                case 1:
+                    // Rey en subnivel 1 -> puede ver subnivel 3
+                    for (int carta = cartaRey; carta <= cartaRey + 1 && carta < 3; carta++) {
+                        if (niveles[1][carta].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+                case 2:
+                    // Rey en subnivel 2 -> puede ver subnivel 3
+                    for (int carta = cartaRey; carta <= cartaRey + 1 && carta < 3; carta++) {
+                        if (niveles[1][carta].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+                case 3:
+                    // Rey en subnivel 3 -> puede ver subnivel 1, 2 y 5
+                    // Verificar subnivel 1 (arriba)
+                    if (cartaRey < 2) {
+                        if (niveles[0][cartaRey].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    // Verificar subnivel 2 (arriba)
+                    if (cartaRey < 2) {
+                        if (niveles[0][cartaRey].mitadInferior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    // Verificar subnivel 5 (abajo)
+                    for (int carta = cartaRey; carta <= cartaRey + 1 && carta < 4; carta++) {
+                        if (niveles[2][carta].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+                case 4:
+                    // Rey en subnivel 4 -> puede ver subnivel 1, 2 y 5
+                    // Verificar subnivel 1 (arriba)
+                    if (cartaRey < 2) {
+                        if (niveles[0][cartaRey].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    // Verificar subnivel 2 (arriba)
+                    if (cartaRey < 2) {
+                        if (niveles[0][cartaRey].mitadInferior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    // Verificar subnivel 5 (abajo)
+                    for (int carta = cartaRey; carta <= cartaRey + 1 && carta < 4; carta++) {
+                        if (niveles[2][carta].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+                case 5:
+                    // Rey en subnivel 5 -> puede ver subnivel 3 y 4
+                    if (cartaRey < 3) {
+                        if (niveles[1][cartaRey].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                        if (niveles[1][cartaRey].mitadInferior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+                case 6:
+                    // Rey en subnivel 6 -> puede ver subnivel 3 y 4
+                    if (cartaRey < 3) {
+                        if (niveles[1][cartaRey].mitadSuperior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                        if (niveles[1][cartaRey].mitadInferior.equals("Criminal")) {
+                            criminalesCount++;
+                        }
+                    }
+                    break;
+            }
+            
+            return criminalesCount;
+        }
+        
+        public void verificarYVoltearReyes() {
+            System.out.println("\n=== VERIFICANDO AUTO-VOLTEO DE REYES ===");
+            boolean alguyReyVolteado = false;
+            
+            for (int nivel = 0; nivel < 3; nivel++) {
+                int maxCartas = (nivel == 0) ? 2 : (nivel == 1) ? 3 : 4;
+                
+                for (int carta = 0; carta < maxCartas; carta++) {
+                    boolean cartaDebeVoltearse = false;
+                    String razonVolteo = "";
+                    
+                    // Verificar mitad superior
+                    if (niveles[nivel][carta].mitadSuperior.equals("Rey")) {
+                        int subnivel = (nivel * 2) + 1; // Convertir a subnivel (1, 3, 5)
+                        int criminalesAdyacentes = contarCriminalesAdyacentes(subnivel, carta, true);
+                        
+                        if (criminalesAdyacentes >= 2) {
+                            cartaDebeVoltearse = true;
+                            razonVolteo = "Rey en mitad superior con " + criminalesAdyacentes + " criminales adyacentes";
+                        }
+                    }
+                    
+                    // Verificar mitad inferior
+                    if (niveles[nivel][carta].mitadInferior.equals("Rey")) {
+                        int subnivel = (nivel * 2) + 2; // Convertir a subnivel (2, 4, 6)
+                        int criminalesAdyacentes = contarCriminalesAdyacentes(subnivel, carta, false);
+                        
+                        if (criminalesAdyacentes >= 2) {
+                            cartaDebeVoltearse = true;
+                            razonVolteo = "Rey en mitad inferior con " + criminalesAdyacentes + " criminales adyacentes";
+                        }
+                    }
+                    
+                    // Si la carta debe voltearse y no está completamente volteada
+                    if (cartaDebeVoltearse && 
+                        (!niveles[nivel][carta].estaVolteada(true) || !niveles[nivel][carta].estaVolteada(false))) {
+                        
+                        // Voltear ambas mitades de la carta
+                        if (!niveles[nivel][carta].estaVolteada(true)) {
+                            niveles[nivel][carta].voltearMitad(true);
+                        }
+                        if (!niveles[nivel][carta].estaVolteada(false)) {
+                            niveles[nivel][carta].voltearMitad(false);
+                        }
+                        
+                        System.out.println("¡CARTA COMPLETA en Nivel " + (nivel + 1) + ", Carta " + (carta + 1) + 
+                                         " se voltea automáticamente! (" + razonVolteo + ")");
+                        alguyReyVolteado = true;
+                    }
+                }
+            }
+            
+            if (!alguyReyVolteado) {
+                System.out.println("Ningún rey necesita voltearse automáticamente.");
+            }
+        }
+        
+        public void voltearMitadCarta(int subnivel, int carta) {
+            if (subnivel < 1 || subnivel > 6) {
+                System.out.println("Error: El subnivel debe estar entre 1 y 6.");
+                return;
+            }
+            
+            int nivel = subnivelANivel(subnivel);
+            int maxCartas = getMaxCartasParaSubnivel(subnivel);
+            
+            if (carta < 1 || carta > maxCartas) {
+                System.out.println("Error: La carta debe estar entre 1 y " + maxCartas + " para el subnivel " + subnivel + ".");
+                return;
+            }
+            
+            boolean esMitadSuperior = (subnivel % 2 == 1); // Subniveles impares son mitad superior
+            int indiceCartaReal = carta - 1; // Convertir a índice basado en 0
+            
+            String tipoActual = esMitadSuperior ? 
+                niveles[nivel][indiceCartaReal].mitadSuperior : 
+                niveles[nivel][indiceCartaReal].mitadInferior;
+            
+            if (tipoActual.equals(".")) {
+                System.out.println("Error: No se puede voltear una mitad de carta vacía.");
+                return;
+            }
+            
+            boolean estabaVolteada = niveles[nivel][indiceCartaReal].estaVolteada(esMitadSuperior);
+            niveles[nivel][indiceCartaReal].voltearMitad(esMitadSuperior);
+            
+            String mitadStr = esMitadSuperior ? "superior" : "inferior";
+            String accion = estabaVolteada ? "se desvoltea" : "se voltea";
+            
+            System.out.println("La mitad " + mitadStr + " de la carta " + carta + 
+                             " en subnivel " + subnivel + " " + accion + " correctamente.");
+            System.out.println("Contenido: " + tipoActual + " -> " + 
+                             (estabaVolteada ? "visible" : "oculto (-)"));
+        }
+        
+        // Clase auxiliar para representar posiciones de enamorados
+        private static class PosicionEnamorado {
+            int subnivel;
+            int carta;
+            int nivel;
+            boolean esMitadSuperior;
+            
+            PosicionEnamorado(int subnivel, int carta, int nivel, boolean esMitadSuperior) {
+                this.subnivel = subnivel;
+                this.carta = carta;
+                this.nivel = nivel;
+                this.esMitadSuperior = esMitadSuperior;
+            }
+        }
+        
         private boolean verificarSacerdotesAdyacentes(int subnivel, int cartaCriminal, int nivel, boolean esMitadSuperior, int maxCartas) {
             // Verificar si hay sacerdote en la misma carta (mitad opuesta)
             String calavеraEnMismaCarta = esMitadSuperior ? 
@@ -422,6 +886,9 @@ public int calcularPuntosReyes() {
             System.out.println("  - En subniveles inferiores adyacentes:");
             System.out.println("    * Subnivel 2 → Subnivel 3 (misma posición y siguiente)");
             System.out.println("    * Subnivel 4 → Subnivel 5 (misma posición y siguiente)");
+            System.out.println("ENAMORADOS: Ganan 1 punto por cada par de enamorados adyacentes:");
+            System.out.println("  - Emparejamiento óptimo (máximo número de pares posibles)");
+            System.out.println("  - Adyacencias: misma carta, horizontal, vertical y diagonal");
             System.out.println();
             
             int puntosTotal = calcularPuntos();
@@ -496,7 +963,8 @@ public int calcularPuntosReyes() {
             System.out.println("5. Ver estadísticas");
             System.out.println("6. Ver puntuación");
             System.out.println("7. Limpiar pirámide");
-            System.out.println("8. Salir");
+            System.out.println("8. Voltear carta manualmente");
+            System.out.println("9. Salir");
             System.out.print("Elige una opción: ");
             
             int opcion = scanner.nextInt();
@@ -533,6 +1001,14 @@ public int calcularPuntosReyes() {
                     piramide.limpiarPiramide();
                     break;
                 case 8:
+                    System.out.println("\n=== VOLTEAR CARTA MANUALMENTE ===");
+                    System.out.print("Subnivel (1-6): ");
+                    int subnivelVoltear = scanner.nextInt();
+                    System.out.print("Número de carta: ");
+                    int cartaVoltear = scanner.nextInt();
+                    piramide.voltearMitadCarta(subnivelVoltear, cartaVoltear);
+                    break;
+                case 9:
                     System.out.println("¡Gracias por jugar!");
                     scanner.close();
                     return;
