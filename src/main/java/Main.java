@@ -189,6 +189,20 @@ public class Main {
 public int calcularPuntos() {
     puntosTotal = 0;  // Resetear puntos al calcular
     
+    // Calcular puntos de reyes
+    int puntosReyes = calcularPuntosReyes();
+    puntosTotal += puntosReyes;
+    
+    // Calcular puntos de criminales
+    int puntosCriminales = calcularPuntosCriminales();
+    puntosTotal += puntosCriminales;
+    
+    return puntosTotal;
+}
+
+public int calcularPuntosReyes() {
+    int puntosReyesTotal = 0;
+    
     // Revisar cada subnivel para encontrar reyes
             for (int subnivel = 1; subnivel <= 5; subnivel++) { // Solo subniveles 1-5 pueden tener reyes con calaveras debajo
                 int nivel, maxCartas;
@@ -216,7 +230,7 @@ public int calcularPuntos() {
                     if (calavera.equals("Rey")) {
                         // Contar campesinos y reyes en todos los subniveles inferiores
                         int puntosRey = contarCampesinosYReyesDebajo(subnivel, carta);
-                        puntosTotal += puntosRey;
+                        puntosReyesTotal += puntosRey;
                         
                         // Mostrar qué subniveles está contando
                         String subnivelesTotales = "";
@@ -231,7 +245,7 @@ public int calcularPuntos() {
                 }
             }
             
-            return puntosTotal;
+            return puntosReyesTotal;
         }
         
         private int contarCampesinosYReyesDebajo(int subnivelRey, int cartaRey) {
@@ -272,15 +286,147 @@ public int calcularPuntos() {
             return puntos;
         }
         
-        public void mostrarPuntuacion() {
-            System.out.println("\n=== PUNTUACIÓN DE REYES ===");
-            System.out.println("Los reyes ganan 1 punto por cada campesino o rey en TODOS los subniveles inferiores.");
-            System.out.println("Ejemplo: Un rey en subnivel 1 cuenta campesinos/reyes en subniveles 2, 3, 4, 5 y 6.");
+        public int calcularPuntosCriminales() {
+            int puntosCriminalesTotal = 0;
+            
+            // Revisar cada subnivel para encontrar criminales
+            for (int subnivel = 1; subnivel <= 6; subnivel++) {
+                int nivel, maxCartas;
+                boolean esMitadSuperior;
+                
+                // Determinar nivel y mitad del subnivel actual
+                if (subnivel == 1) {
+                    nivel = 0; esMitadSuperior = true; maxCartas = 2;
+                } else if (subnivel == 2) {
+                    nivel = 0; esMitadSuperior = false; maxCartas = 2;
+                } else if (subnivel == 3) {
+                    nivel = 1; esMitadSuperior = true; maxCartas = 3;
+                } else if (subnivel == 4) {
+                    nivel = 1; esMitadSuperior = false; maxCartas = 3;
+                } else if (subnivel == 5) {
+                    nivel = 2; esMitadSuperior = true; maxCartas = 4;
+                } else { // subnivel == 6
+                    nivel = 2; esMitadSuperior = false; maxCartas = 4;
+                }
+                
+                // Buscar criminales en el subnivel actual
+                for (int carta = 0; carta < maxCartas; carta++) {
+                    String calavera = esMitadSuperior ? 
+                        niveles[nivel][carta].mitadSuperior : 
+                        niveles[nivel][carta].mitadInferior;
+                    
+                    if (calavera.equals("Criminal")) {
+                        // Verificar si tiene sacerdotes adyacentes
+                        boolean tieneSacerdoteAdyacente = verificarSacerdotesAdyacentes(subnivel, carta, nivel, esMitadSuperior, maxCartas);
+                        
+                        if (tieneSacerdoteAdyacente) {
+                            puntosCriminalesTotal += 1;
+                            System.out.println("Criminal en subnivel " + subnivel + ", carta " + (carta + 1) + 
+                                             ": 1 punto (tiene sacerdote adyacente)");
+                        }
+                    }
+                }
+            }
+            
+            return puntosCriminalesTotal;
+        }
+        
+        private boolean verificarSacerdotesAdyacentes(int subnivel, int cartaCriminal, int nivel, boolean esMitadSuperior, int maxCartas) {
+            // Verificar si hay sacerdote en la misma carta (mitad opuesta)
+            String calavеraEnMismaCarta = esMitadSuperior ? 
+                niveles[nivel][cartaCriminal].mitadInferior : 
+                niveles[nivel][cartaCriminal].mitadSuperior;
+            if (calavеraEnMismaCarta.equals("Sacerdote")) {
+                return true;
+            }
+            
+            // Verificar carta a la izquierda
+            if (cartaCriminal > 0) {
+                String calaveraIzquierda = esMitadSuperior ? 
+                    niveles[nivel][cartaCriminal - 1].mitadSuperior : 
+                    niveles[nivel][cartaCriminal - 1].mitadInferior;
+                if (calaveraIzquierda.equals("Sacerdote")) {
+                    return true;
+                }
+            }
+            
+            // Verificar carta a la derecha
+            if (cartaCriminal < maxCartas - 1) {
+                String calaveraDerecha = esMitadSuperior ? 
+                    niveles[nivel][cartaCriminal + 1].mitadSuperior : 
+                    niveles[nivel][cartaCriminal + 1].mitadInferior;
+                if (calaveraDerecha.equals("Sacerdote")) {
+                    return true;
+                }
+            }
+            
+            // Verificar adyacencias verticales (subniveles inferiores)
+            if (verificarSacerdotesAdyacentesVerticales(subnivel, cartaCriminal)) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        private boolean verificarSacerdotesAdyacentesVerticales(int subnivel, int cartaCriminal) {
+            // Verificar adyacencias específicas según el patrón piramidal
+            if (subnivel == 2) {
+                // Subnivel 2 carta X es adyacente a subnivel 3 cartas X y X+1
+                int nivelInferior = 1; // Nivel 2
+                
+                // Verificar carta en la misma posición
+                if (cartaCriminal < 3) { // Máximo 3 cartas en nivel 2
+                    String calavera1 = niveles[nivelInferior][cartaCriminal].mitadSuperior;
+                    if (calavera1.equals("Sacerdote")) {
+                        return true;
+                    }
+                }
+                
+                // Verificar carta en posición + 1
+                if (cartaCriminal + 1 < 3) { // Máximo 3 cartas en nivel 2
+                    String calavera2 = niveles[nivelInferior][cartaCriminal + 1].mitadSuperior;
+                    if (calavera2.equals("Sacerdote")) {
+                        return true;
+                    }
+                }
+            } else if (subnivel == 4) {
+                // Subnivel 4 carta X es adyacente a subnivel 5 cartas X y X+1
+                int nivelInferior = 2; // Nivel 3
+                
+                // Verificar carta en la misma posición
+                if (cartaCriminal < 4) { // Máximo 4 cartas en nivel 3
+                    String calavera1 = niveles[nivelInferior][cartaCriminal].mitadSuperior;
+                    if (calavera1.equals("Sacerdote")) {
+                        return true;
+                    }
+                }
+                
+                // Verificar carta en posición + 1
+                if (cartaCriminal + 1 < 4) { // Máximo 4 cartas en nivel 3
+                    String calavera2 = niveles[nivelInferior][cartaCriminal + 1].mitadSuperior;
+                    if (calavera2.equals("Sacerdote")) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        public void mostrarPuntuacionReyes() {
+            System.out.println("\n=== PUNTUACIÓN COMPLETA ===");
+            System.out.println("REYES: Ganan 1 punto por cada campesino o rey en TODOS los subniveles inferiores.");
+            System.out.println("CRIMINALES: Ganan 1 punto si tienen al menos un sacerdote adyacente:");
+            System.out.println("  - En la misma carta (mitad superior/inferior)");
+            System.out.println("  - En cartas adyacentes (izquierda o derecha en el mismo subnivel)");
+            System.out.println("  - En subniveles inferiores adyacentes:");
+            System.out.println("    * Subnivel 2 → Subnivel 3 (misma posición y siguiente)");
+            System.out.println("    * Subnivel 4 → Subnivel 5 (misma posición y siguiente)");
             System.out.println();
             
             int puntosTotal = calcularPuntos();
             
-            System.out.println("\nPUNTUACIÓN TOTAL DE REYES: " + puntosTotal + " puntos");
+            System.out.println("\nPUNTUACIÓN TOTAL: " + puntosTotal + " puntos");
             System.out.println();
         }
         
@@ -381,7 +527,7 @@ public int calcularPuntos() {
                     piramide.mostrarEstadisticas();
                     break;
                 case 6:
-                    piramide.mostrarPuntuacion();
+                    piramide.mostrarPuntuacionReyes();
                     break;
                 case 7:
                     piramide.limpiarPiramide();
