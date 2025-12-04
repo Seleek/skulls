@@ -3,7 +3,6 @@ import java.util.Scanner;
 public class Main {
     // Pirámide de calaveras con 3 niveles
     // Cada carta puede contener calaveras: reyes, criminales, sacerdotes, campesinos, enamorados
-    
     static class Carta {
         String mitadSuperior;
         String mitadInferior;
@@ -33,6 +32,8 @@ public class Main {
     static class Piramide {
         Carta[][] niveles;
         String[] tiposCalaveras = {"Rey", "Criminal", "Sacerdote", "Campesino", "Enamorado"};
+        int puntos = 0;
+        int puntosTotal = 0;
         
         public Piramide() {
             // Inicializar la pirámide: Nivel 1=2 cartas, Nivel 2=3 cartas, Nivel 3=4 cartas
@@ -185,10 +186,10 @@ public class Main {
             System.out.println("Pirámide limpiada. Todas las cartas están vacías.");
         }
         
-        public int calcularPuntosReyes() {
-            int puntosTotal = 0;
-            
-            // Revisar cada subnivel para encontrar reyes
+public int calcularPuntos() {
+    puntosTotal = 0;  // Resetear puntos al calcular
+    
+    // Revisar cada subnivel para encontrar reyes
             for (int subnivel = 1; subnivel <= 5; subnivel++) { // Solo subniveles 1-5 pueden tener reyes con calaveras debajo
                 int nivel, maxCartas;
                 boolean esMitadSuperior;
@@ -213,12 +214,19 @@ public class Main {
                         niveles[nivel][carta].mitadInferior;
                     
                     if (calavera.equals("Rey")) {
-                        // Contar campesinos y reyes en el subnivel inmediatamente inferior
+                        // Contar campesinos y reyes en todos los subniveles inferiores
                         int puntosRey = contarCampesinosYReyesDebajo(subnivel, carta);
                         puntosTotal += puntosRey;
                         
+                        // Mostrar qué subniveles está contando
+                        String subnivelesTotales = "";
+                        for (int sub = subnivel + 1; sub <= 6; sub++) {
+                            subnivelesTotales += sub;
+                            if (sub < 6) subnivelesTotales += ", ";
+                        }
+                        
                         System.out.println("Rey en subnivel " + subnivel + ", carta " + (carta + 1) + 
-                                         ": " + puntosRey + " puntos");
+                                         ": " + puntosRey + " puntos (contando subniveles " + subnivelesTotales + ")");
                     }
                 }
             }
@@ -227,52 +235,50 @@ public class Main {
         }
         
         private int contarCampesinosYReyesDebajo(int subnivelRey, int cartaRey) {
-            int puntos = 0;
-            int subnivelInferior = subnivelRey + 1;
+            puntos = 0;  // Resetear puntos para este rey
             
-            // Si es el último subnivel, no hay nada debajo
-            if (subnivelInferior > 6) {
-                return 0;
-            }
-            
-            int nivel, maxCartas;
-            boolean esMitadSuperior;
-            
-            // Determinar nivel y mitad del subnivel inferior
-            if (subnivelInferior == 1) {
-                nivel = 0; esMitadSuperior = true; maxCartas = 2;
-            } else if (subnivelInferior == 2) {
-                nivel = 0; esMitadSuperior = false; maxCartas = 2;
-            } else if (subnivelInferior == 3) {
-                nivel = 1; esMitadSuperior = true; maxCartas = 3;
-            } else if (subnivelInferior == 4) {
-                nivel = 1; esMitadSuperior = false; maxCartas = 3;
-            } else if (subnivelInferior == 5) {
-                nivel = 2; esMitadSuperior = true; maxCartas = 4;
-            } else { // subnivelInferior == 6
-                nivel = 2; esMitadSuperior = false; maxCartas = 4;
-            }
-            
-            // Contar campesinos y reyes en todas las cartas del subnivel inferior
-            for (int carta = 0; carta < maxCartas; carta++) {
-                String calavera = esMitadSuperior ? 
-                    niveles[nivel][carta].mitadSuperior : 
-                    niveles[nivel][carta].mitadInferior;
+            // Recorrer todos los subniveles por debajo del rey
+            for (int subnivelInferior = subnivelRey + 1; subnivelInferior <= 6; subnivelInferior++) {
+                int nivel, maxCartas;
+                boolean esMitadSuperior;
                 
-                if (calavera.equals("Campesino") || calavera.equals("Rey")) {
-                    puntos++;
+                // Determinar nivel y mitad del subnivel inferior
+                if (subnivelInferior == 1) {
+                    nivel = 0; esMitadSuperior = true; maxCartas = 2;
+                } else if (subnivelInferior == 2) {
+                    nivel = 0; esMitadSuperior = false; maxCartas = 2;
+                } else if (subnivelInferior == 3) {
+                    nivel = 1; esMitadSuperior = true; maxCartas = 3;
+                } else if (subnivelInferior == 4) {
+                    nivel = 1; esMitadSuperior = false; maxCartas = 3;
+                } else if (subnivelInferior == 5) {
+                    nivel = 2; esMitadSuperior = true; maxCartas = 4;
+                } else { // subnivelInferior == 6
+                    nivel = 2; esMitadSuperior = false; maxCartas = 4;
+                }
+                
+                // Contar campesinos y reyes en todas las cartas del subnivel
+                for (int carta = 0; carta < maxCartas; carta++) {
+                    String calavera = esMitadSuperior ? 
+                        niveles[nivel][carta].mitadSuperior : 
+                        niveles[nivel][carta].mitadInferior;
+                    
+                    if (calavera.equals("Campesino") || calavera.equals("Rey")) {
+                        puntos++;
+                    }
                 }
             }
             
             return puntos;
         }
         
-        public void mostrarPuntuacionReyes() {
+        public void mostrarPuntuacion() {
             System.out.println("\n=== PUNTUACIÓN DE REYES ===");
-            System.out.println("Los reyes ganan 1 punto por cada campesino o rey en el subnivel inmediatamente inferior.");
+            System.out.println("Los reyes ganan 1 punto por cada campesino o rey en TODOS los subniveles inferiores.");
+            System.out.println("Ejemplo: Un rey en subnivel 1 cuenta campesinos/reyes en subniveles 2, 3, 4, 5 y 6.");
             System.out.println();
             
-            int puntosTotal = calcularPuntosReyes();
+            int puntosTotal = calcularPuntos();
             
             System.out.println("\nPUNTUACIÓN TOTAL DE REYES: " + puntosTotal + " puntos");
             System.out.println();
@@ -342,7 +348,7 @@ public class Main {
             System.out.println("3. Ver tipos de calaveras");
             System.out.println("4. Agregar calavera");
             System.out.println("5. Ver estadísticas");
-            System.out.println("6. Ver puntuación de reyes");
+            System.out.println("6. Ver puntuación");
             System.out.println("7. Limpiar pirámide");
             System.out.println("8. Salir");
             System.out.print("Elige una opción: ");
@@ -362,6 +368,7 @@ public class Main {
                 case 4:
                     System.out.println("\n=== AGREGAR CALAVERA ===");
                     System.out.println("Recuerda: las cartas se numeran de izquierda a derecha");
+                    piramide.mostrarTiposCalaveras(); // Mostrar lista de calaveras
                     System.out.print("Subnivel (1-6): ");
                     int subnivel = scanner.nextInt();
                     System.out.print("Número de carta (de izquierda a derecha): ");
@@ -374,7 +381,7 @@ public class Main {
                     piramide.mostrarEstadisticas();
                     break;
                 case 6:
-                    piramide.mostrarPuntuacionReyes();
+                    piramide.mostrarPuntuacion();
                     break;
                 case 7:
                     piramide.limpiarPiramide();
